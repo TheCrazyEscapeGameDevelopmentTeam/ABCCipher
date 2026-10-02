@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABC Cipher v2</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: #101522;
+  color: #e8edff;
+  font-family: sans-serif;
+}
+
+main {
+  max-width: 850px;
+  margin: auto;
+}
+
+h1 {
+  color: #79baff;
+  text-align: center;
+}
+
+.panel {
+  background: #1b2538;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 18px 0;
+}
+
+textarea, input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 7px;
+  border: 1px solid #405271;
+  background: #0d1422;
+  color: white;
+  font-size: 15px;
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+button {
+  padding: 11px 16px;
+  margin: 5px 3px;
+  border: 0;
+  border-radius: 7px;
+  background: #347fda;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #559cf1;
+}
+
+.secondary {
+  background: #46536c;
+}
+
+.result {
+  background: #0d1422;
+  border-radius: 7px;
+  padding: 12px;
+  min-height: 55px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.note {
+  color: #aab6d5;
+  font-size: 13px;
+}
+
+.status {
+  color: #85dba9;
+  min-height: 20px;
+}
+
+</style>
+</head>
+
+<body>
+<main>
+
+<h1>ABC Cipher v2</h1>
+<p style="text-align:center">
+Three symbols. One secret.
+</p>
+
+
+<div class="panel">
+  <h2>🔑 暗号鍵管理</h2>
+
+  <label>現在の暗号鍵</label>
+  <input
+    id="key"
+    type="password"
+    placeholder="暗号鍵がありません"
+    autocomplete="off"
+  >
+
+  <br><br>
+
+  <button onclick="generateKey()">
+    新しい鍵を生成
+  </button>
+
+  <button onclick="saveKey()">
+    .abckeyで保存
+  </button>
+
+  <br>
+
+  <input
+    type="file"
+    id="keyFile"
+    accept=".abckey"
+    style="margin-top:15px"
+  >
+
+  <button onclick="loadKey()">
+    鍵ファイルを読み込む
+  </button>
+
+  <p class="note">
+    鍵ファイルは秘密情報です。
+    他人に渡さないでください。
+  </p>
+</div>
+
+<div class="panel">
+<h2>🔐 暗号化</h2>
+
+<label>暗号化する文章</label>
+<textarea id="plain"
+placeholder="秘密の文章を入力"></textarea>
+
+<button onclick="encrypt()">
+暗号化する
+</button>
+
+<div class="result" id="encrypted"></div>
+
+<button class="secondary" onclick="copyEncrypted()">
+暗号文をコピー
+</button>
+</div>
+
+<div class="panel">
+<h2>🔓 復号</h2>
+
+<label>ABC暗号文</label>
+<textarea id="cipher"
+placeholder="abcのみで構成された暗号文"></textarea>
+
+<button onclick="decrypt()">
+復号する
+</button>
+
+<div class="result" id="decrypted"></div>
+</div>
+
+<div class="panel">
+<h2>システム情報</h2>
+<p>暗号方式：AES-256-GCM</p>
+<p>鍵長：256 bit</p>
+<p>IV：96 bit（毎回ランダム生成）</p>
+<p>ABC変換：3進数・1バイト6文字</p>
+<p>区切り文字：なし</p>
+<p>改ざん検知：あり</p>
+<p id="status" class="status"></p>
+</div>
+
+</main>
+
+<script>
+
+// =====================================
+// Base64URL変換
+// =====================================
+
+function toBase64URL(bytes) {
+
+  let binary = "";
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
+
+function fromBase64URL(text) {
+
+  if (!/^[A-Za-z0-9_-]+$/.test(text)) {
+    throw new Error("鍵の形式が正しくありません");
+  }
+
+  const base64 = text
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const binary = atob(
+    base64 + "=".repeat((4 - base64.length % 4) % 4)
+  );
+
+  return Uint8Array.from(
+    binary,
+    char => char.charCodeAt(0)
+  );
+}
+
+
+// =====================================
+// 鍵の管理
+// =====================================
+
+
+let currentKey = null;
+
+// 鍵の生成
+async function generateKey() {
+
+  const bytes = crypto.getRandomValues(
+    new Uint8Array(32)
+  );
+
+  currentKey = toBase64URL(bytes);
+
+  document.getElementById("key").value =
+    currentKey;
+
+  setStatus("新しい鍵を生成しました");
+}
+
+
+// 鍵の確認
+async function getCryptoKey() {
+
+  const keyText =
+    document.getElementById("key").value.trim();
+
+  const keyBytes = fromBase64URL(keyText);
+
+  if (keyBytes.length !== 32) {
+    throw new Error("鍵の長さが正しくありません");
+  }
+
+  return await crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+
+// .abckeyとして保存
+function saveKey() {
+
+  const key =
+    document.getElementById("key").value.trim();
+
+  const bytes = fromBase64URL(key);
+
+  if (bytes.length !== 32) {
+    setStatus("有効な鍵がありません");
+    return;
+  }
+
+  const content =
+    "ABC Cipher Key File\n" +
+    "Version: 2\n" +
+    "Key: " + key + "\n";
+
+  const blob = new Blob(
+    [content],
+    { type: "text/plain;charset=utf-8" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "secret.abckey";
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+  setStatus(".abckeyファイルを保存しました");
+}
+
+
+// .abckeyを読み込む
+async function loadKey() {
+
+  const file =
+    document.getElementById("keyFile").files[0];
+
+  if (!file) {
+    setStatus("鍵ファイルを選択してください");
+    return;
+  }
+
+  if (!file.name.endsWith(".abckey")) {
+    setStatus("abckeyファイルではありません");
+    return;
+  }
+
+  try {
+
+    if (file.size > 1024) {
+      throw new Error("ファイルサイズが大きすぎます");
+    }
+
+    const content = await file.text();
+
+    const match = content.match(
+      /^ABC Cipher Key File\r?\nVersion: 2\r?\nKey: ([A-Za-z0-9_-]+)\r?\n?$/
+    );
+
+    if (!match) {
+      throw new Error("鍵ファイルの形式が正しくありません");
+    }
+
+    const keyBytes = fromBase64URL(match[1]);
+
+    if (keyBytes.length !== 32) {
+      throw new Error("鍵の長さが正しくありません");
+    }
+
+    currentKey = match[1];
+
+    document.getElementById("key").value =
+      currentKey;
+
+    setStatus("鍵ファイルを読み込みました");
+
+  } catch (error) {
+
+    setStatus("読み込み失敗：" + error.message);
+
+  }
+}
+
+
+// =====================================
+// バイト列をABCに変換
+// =====================================
+
+function bytesToABC(bytes) {
+
+  let result = "";
+
+  for (const byte of bytes) {
+
+    let n = byte;
+    let code = "";
+
+    // 必ず6桁にする
+    for (let i = 0; i < 6; i++) {
+
+      code = ["a", "b", "c"][n % 3] + code;
+
+      n = Math.floor(n / 3);
+    }
+
+    result += code;
+  }
+
+  return result;
+}
+
+
+// =====================================
+// ABCをバイト列に戻す
+// =====================================
+
+function abcToBytes(text) {
+
+  if (!/^[abc]+$/.test(text)) {
+    throw new Error("abc以外の文字が含まれています");
+  }
+
+  if (text.length === 0 || text.length % 6 !== 0) {
+    throw new Error("暗号文の長さが正しくありません");
+  }
+
+  const bytes = new Uint8Array(text.length / 6);
+
+  for (let i = 0; i < bytes.length; i++) {
+
+    const part = text.slice(i * 6, i * 6 + 6);
+
+    let n = 0;
+
+    for (const char of part) {
+
+      n = n * 3 + {
+        a: 0,
+        b: 1,
+        c: 2
+      }[char];
+
+    }
+
+    if (n > 255) {
+      throw new Error("不正なデータです");
+    }
+
+    bytes[i] = n;
+  }
+
+  return bytes;
+}
+
+
+// =====================================
+// 暗号化
+// =====================================
+
+async function encrypt() {
+
+  try {
+
+    const plain = document.getElementById("plain").value;
+
+    if (!plain) {
+      throw new Error("文章を入力してください");
+    }
+
+    const key = await getCryptoKey();
+
+    // 毎回新しいIVを作成
+    const iv = crypto.getRandomValues(
+      new Uint8Array(12)
+    );
+
+    const data = new TextEncoder().encode(plain);
+
+    // AES-256-GCM
+    const encrypted = new Uint8Array(
+      await crypto.subtle.encrypt(
+        {
+          name: "AES-GCM",
+          iv: iv,
+          tagLength: 128
+        },
+        key,
+        data
+      )
+    );
+
+    // ヘッダー + IV + 暗号文
+    const magic = new Uint8Array([
+      65, 66, 67, 50
+    ]);
+
+    const packet = new Uint8Array(
+      magic.length + iv.length + encrypted.length
+    );
+
+    packet.set(magic, 0);
+    packet.set(iv, magic.length);
+    packet.set(encrypted, magic.length + iv.length);
+
+    // ABC変換
+    const result = bytesToABC(packet);
+
+    document.getElementById("encrypted").textContent =
+      result;
+
+    setStatus("暗号化が完了しました");
+
+  } catch (error) {
+
+    setStatus("エラー：" + error.message);
+
+  }
+
+}
+
+
+// =====================================
+// 復号
+// =====================================
+
+async function decrypt() {
+
+  try {
+
+    const text = document.getElementById("cipher")
+      .value.trim();
+
+    const key = await getCryptoKey();
+
+    const packet = abcToBytes(text);
+
+    // 最低限の長さを確認
+    if (packet.length < 32) {
+      throw new Error("暗号文が短すぎます");
+    }
+
+    // ヘッダー確認
+    if (
+      packet[0] !== 65 ||
+      packet[1] !== 66 ||
+      packet[2] !== 67 ||
+      packet[3] !== 50
+    ) {
+      throw new Error("ABC Cipher v2ではありません");
+    }
+
+    // IVを取り出す
+    const iv = packet.slice(4, 16);
+
+    // 暗号文を取り出す
+    const encrypted = packet.slice(16);
+
+    // AES-GCMで復号・認証
+    const decrypted = await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: iv,
+        tagLength: 128
+      },
+      key,
+      encrypted
+    );
+
+    const result = new TextDecoder(
+      "utf-8",
+      { fatal: true }
+    ).decode(decrypted);
+
+    document.getElementById("decrypted").textContent =
+      result;
+
+    setStatus("復号・認証に成功しました");
+
+  } catch (error) {
+
+    document.getElementById("decrypted").textContent =
+      "";
+
+    setStatus(
+      "復号失敗：鍵が違うか、暗号文が破損しています"
+    );
+
+  }
+
+}
+
+
+// =====================================
+// コピー機能
+// =====================================
+
+async function copyText(text) {
+
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("コピーしました");
+  } catch {
+    setStatus("コピーできませんでした");
+  }
+
+}
+
+
+function copyKey() {
+  copyText(document.getElementById("key").textContent);
+}
+
+
+function copyEncrypted() {
+  copyText(document.getElementById("encrypted").textContent);
+}
+
+
+// =====================================
+// 状態表示
+// =====================================
+
+function setStatus(message) {
+
+  document.getElementById("status").textContent =
+    message;
+
+}
+
+</script>
+
+</body>
+</html>
