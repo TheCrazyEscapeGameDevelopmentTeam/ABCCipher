@@ -578,6 +578,7 @@ async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
     setStatus("コピーしました");
+    alert("Copy Successed!")
   } catch {
     setStatus("コピーできませんでした");
   }
