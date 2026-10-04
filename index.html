@@ -246,6 +246,7 @@ async function generateKey() {
     currentKey;
 
   setStatus("新しい鍵を生成しました");
+  alert("新しい鍵を生成しました");
 }
 
 
@@ -281,6 +282,7 @@ function saveKey() {
 
   if (bytes.length !== 32) {
     setStatus("有効な鍵がありません");
+    alert("有効な鍵がありません");
     return;
   }
 
@@ -305,6 +307,7 @@ function saveKey() {
   URL.revokeObjectURL(url);
 
   setStatus(".abckeyファイルを保存しました");
+  alert(".abckeyファイルを保存しました");
 }
 
 
@@ -316,11 +319,13 @@ async function loadKey() {
 
   if (!file) {
     setStatus("鍵ファイルを選択してください");
+    alert("鍵ファイルを選択してください");
     return;
   }
 
   if (!file.name.endsWith(".abckey")) {
-    setStatus("abckeyファイルではありません");
+    setStatus(".abckeyファイルではありません");
+    alert(".abckeyファイルではありません");
     return;
   }
 
@@ -352,11 +357,12 @@ async function loadKey() {
       currentKey;
 
     setStatus("鍵ファイルを読み込みました");
-    alert("鍵ファイルを読み込みました")
+    alert("鍵ファイルを読み込みました");
 
   } catch (error) {
 
     setStatus("読み込み失敗：" + error.message);
+    alert("読み込み失敗：" + error.message);
 
   }
 }
@@ -489,10 +495,12 @@ async function encrypt() {
       result;
 
     setStatus("暗号化が完了しました");
+    alert("暗号化が完了しました");
 
   } catch (error) {
 
     setStatus("エラー：" + error.message);
+    alert("エラー：" + error.message);
 
   }
 
@@ -555,6 +563,7 @@ async function decrypt() {
       result;
 
     setStatus("復号・認証に成功しました");
+    alert("復号・認証に成功しました");
 
   } catch (error) {
 
@@ -562,6 +571,9 @@ async function decrypt() {
       "";
 
     setStatus(
+      "復号失敗：鍵が違うか、暗号文が破損しています"
+    );
+    alert(
       "復号失敗：鍵が違うか、暗号文が破損しています"
     );
 
@@ -579,9 +591,10 @@ async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
     setStatus("コピーしました");
-    alert("Copy Successed!")
+    alert("コピーしました");
   } catch {
     setStatus("コピーできませんでした");
+    alert("コピーできませんでした");
   }
 
 }
