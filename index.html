@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -526,9 +525,14 @@ async function decryptText() {
     document.getElementById("decrypted").textContent = result;
 
     setStatus("復号・認証に成功しました。");
-  } catch (error) {
+    } catch (error) {
     document.getElementById("decrypted").textContent = "";
-    setStatus("復号失敗：鍵が違うか、暗号文が破損しています。");
+    setStatus(
+      "復号失敗：" +
+      error.name + "：" +
+      error.message
+    );
+    console.error("ABC Cipher 復号エラー:", error);
   }
 }
 
