@@ -87,6 +87,13 @@ button:hover {
   min-height: 20px;
 }
 
+.danger {
+    background: #b83232;
+}
+
+.danger:hover {
+    background: #d94b4b;
+}
 </style>
 </head>
 
@@ -156,6 +163,10 @@ placeholder="秘密の文章を入力"></textarea>
 暗号文をコピー
 </button>
 </div>
+  
+<button class="danger" onclick="clearAll()">
+    🗑️ すべてクリア
+</button>
 
 <div class="panel">
 <h2>🔓 復号</h2>
@@ -607,6 +618,39 @@ function copyKey() {
 
 function copyEncrypted() {
   copyText(document.getElementById("encrypted").textContent);
+}
+
+// =====================================
+// 全削除機能
+// =====================================
+function clearAll() {
+
+    // テキスト入力
+    document.getElementById("plain").value = "";
+
+    // 暗号文
+    document.getElementById("encrypted").textContent = "";
+
+    // 復号結果
+    document.getElementById("decrypted").textContent = "";
+
+    // ファイル入力
+    const fileInput = document.getElementById("fileInput");
+
+    if (fileInput) {
+        fileInput.value = "";
+    }
+
+    // ファイル結果
+    const fileResult =
+        document.getElementById("fileResult");
+
+    if (fileResult) {
+        fileResult.textContent = "";
+    }
+
+    setStatus("入力データをクリアしました");
+    aleat("入力データをクリアしました");
 }
 
 
