@@ -485,7 +485,12 @@ async function encryptText() {
     // テキスト用の認証付き暗号化
     const { iv, encrypted } = await encryptBytes(key, data, MAGIC);
 
-    const packet = concatBytes(MAGIC, iv, encrypted);
+    const packet = concatBytes(
+    MAGIC,
+    new Uint8Array([VERSION]),
+    iv,
+    encrypted
+    );
 
     document.getElementById("encrypted").textContent =
       bytesToABC(packet);
@@ -511,8 +516,8 @@ async function decryptText() {
     checkMagic(packet);
 
     const key = await getCryptoKey();
-    const iv = packet.slice(4, 16);
-    const encrypted = packet.slice(16);
+    const iv = packet.slice(5, 17);
+    const encrypted = packet.slice(17);
 
     const decrypted = await decryptBytes(
       key, iv, encrypted, MAGIC
