@@ -183,6 +183,32 @@ placeholder="abcのみで構成された暗号文"></textarea>
 </div>
 
 <div class="panel">
+
+    <h2>📁 ファイル暗号化</h2>
+
+    <input
+        type="file"
+        id="fileInput"
+    >
+
+    <br><br>
+
+    <button onclick="encryptFile()">
+        🔒 ファイルを暗号化
+    </button>
+
+    <button onclick="decryptFile()">
+        🔓 .abcdataを復号
+    </button>
+
+    <div
+        class="result"
+        id="fileResult">
+    </div>
+
+</div>
+
+<div class="panel">
 <h2>システム情報</h2>
 <p>暗号方式：AES-256-GCM</p>
 <p>鍵長：256 bit</p>
@@ -192,7 +218,7 @@ placeholder="abcのみで構成された暗号文"></textarea>
 <p>改ざん検知：あり</p>
 <p id="status" class="status"></p>
 </div>
-
+  
 </main>
 
 <script>
