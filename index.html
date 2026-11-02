@@ -574,13 +574,22 @@ async function decryptText() {
   } catch (error) {
     document.getElementById("decrypted").textContent = "";
 
+    let message;
+
+    if (error.name === "OperationError") {
+      message = "鍵が一致しないか、暗号文が破損しています。";
+    } else if (error.name === "Error") {
+      message = error.message;
+    } else {
+      message = "予期しないエラーが発生しました。";
+    }
+
     setStatus(
-      "復号失敗：" + error.name + "：" + error.message
+      "復号失敗：" + error.name + "：" + message
     );
 
     console.error("ABC Cipher 復号エラー:", error);
   }
-}
 
 
 // ==========================================
