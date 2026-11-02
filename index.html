@@ -501,11 +501,14 @@ async function encryptText() {
   }
 }
 
+
 async function decryptText() {
   try {
     const text = document.getElementById("cipher").value.trim();
 
-    if (!text) throw new Error("ABC暗号文を入力してください。");
+    if (!text) {
+      throw new Error("ABC暗号文を入力してください。");
+    }
 
     const packet = abcToBytes(text);
 
@@ -513,15 +516,54 @@ async function decryptText() {
       throw new Error("暗号文が短すぎます。");
     }
 
-    checkMagic(packet);
-
     const key = await getCryptoKey();
-    const iv = packet.slice(5, 17);
-    const encrypted = packet.slice(17);
 
-    const decrypted = await decryptBytes(
-      key, iv, encrypted, MAGIC
-    );
+    let iv;
+    let encrypted;
+    let decrypted;
+
+    // 旧バージョン v2：ABC2
+    if (
+      packet[0] === 65 &&
+      packet[1] === 66 &&
+      packet[2] === 67 &&
+      packet[3] === 50
+    ) {
+      iv = packet.slice(4, 16);
+      encrypted = packet.slice(16);
+
+      // 旧版にはadditionalDataがない
+      decrypted = new Uint8Array(
+        await crypto.subtle.decrypt(
+          {
+            name: "AES-GCM",
+            iv,
+            tagLength: 128
+          },
+          key,
+          encrypted
+        )
+      );
+
+      setStatus("旧バージョン v2 の暗号文を復号しました。");
+    }
+
+    // 現行バージョン：ABCD
+    else {
+      checkMagic(packet);
+
+      iv = packet.slice(5, 17);
+      encrypted = packet.slice(17);
+
+      decrypted = await decryptBytes(
+        key,
+        iv,
+        encrypted,
+        MAGIC
+      );
+
+      setStatus("現行形式の暗号文を復号しました。");
+    }
 
     const result = new TextDecoder("utf-8", {
       fatal: true
@@ -529,17 +571,17 @@ async function decryptText() {
 
     document.getElementById("decrypted").textContent = result;
 
-    setStatus("復号・認証に成功しました。");
-    } catch (error) {
+  } catch (error) {
     document.getElementById("decrypted").textContent = "";
+
     setStatus(
-      "復号失敗：" +
-      error.name + "：" +
-      error.message
+      "復号失敗：" + error.name + "：" + error.message
     );
+
     console.error("ABC Cipher 復号エラー:", error);
   }
 }
+
 
 // ==========================================
 // ファイル形式
