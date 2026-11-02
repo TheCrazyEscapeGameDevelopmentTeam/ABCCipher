@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ABC Cipherの基本的な使い方を解説します。">
+  <title>使い方ガイド | ABC Cipher</title>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="index.html" class="site-logo">ABC Cipher</a>
+
+      <nav class="main-nav" aria-label="メインメニュー">
+        <a href="index.html">ホーム</a>
+        <a href="guide.html" aria-current="page">使い方</a>
+        <a href="specification.html">仕様書</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-heading">
+      <p class="eyebrow">USER GUIDE</p>
+      <h1>使い方ガイド</h1>
+      <p>
+        ABC Cipherの基本的な操作方法を説明します。
+        初めて使う場合は、このページを参考にしてください。
+      </p>
+    </section>
+
+    <nav class="toc" aria-label="ページ内目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#about">ABC Cipherとは</a></li>
+        <li><a href="#key">暗号鍵の準備</a></li>
+        <li><a href="#text-encrypt">文章を暗号化する</a></li>
+        <li><a href="#text-decrypt">文章を復号する</a></li>
+        <li><a href="#file-encrypt">ファイルを暗号化する</a></li>
+        <li><a href="#file-decrypt">ファイルを復号する</a></li>
+        <li><a href="#clear">入力内容を消去する</a></li>
+        <li><a href="#caution">使用上の注意</a></li>
+        <li><a href="#trouble">困ったときは</a></li>
+      </ol>
+    </nav>
+
+    <section id="about" class="guide-section">
+      <h2>1. ABC Cipherとは</h2>
+      <p>
+        ABC Cipherは、文章やファイルを暗号化・復号するためのツールです。
+      </p>
+      <p>
+        暗号化にはAES-256-GCMを使用し、文章の暗号文は
+        <strong>a・b・cの3種類の文字だけ</strong>で表現されます。
+      </p>
+      <p>
+        暗号化したデータを元に戻すには、暗号化時と同じ鍵が必要です。
+      </p>
+    </section>
+
+    <section id="key" class="guide-section">
+      <h2>2. 暗号鍵の準備</h2>
+
+      <h3>初めて使う場合</h3>
+      <ol>
+        <li>ABC Cipherのトップページを開きます。</li>
+        <li>暗号鍵を生成するボタンを押します。</li>
+        <li>生成された鍵を確認します。</li>
+        <li>鍵をファイルに保存します。</li>
+      </ol>
+
+      <p>
+        鍵ファイルの拡張子は <code>.abckey</code> です。
+        このファイルを安全な場所に保管してください。
+      </p>
+
+      <h3>保存済みの鍵を使う場合</h3>
+      <ol>
+        <li>鍵ファイルの読み込み機能を選択します。</li>
+        <li>使用する <code>.abckey</code> ファイルを指定します。</li>
+        <li>読み込みが完了したことを確認します。</li>
+      </ol>
+
+      <p class="notice">
+        <strong>重要：</strong>
+        鍵ファイルには暗号鍵がそのまま保存されています。
+        他人に渡したり、公開したりしないでください。
+      </p>
+    </section>
+
+    <section id="text-encrypt" class="guide-section">
+      <h2>3. 文章を暗号化する</h2>
+      <ol>
+        <li>暗号鍵を準備します。</li>
+        <li>暗号化したい文章を入力欄に入力します。</li>
+        <li>文章の暗号化ボタンを押します。</li>
+        <li>表示された暗号文をコピーします。</li>
+      </ol>
+
+      <p>
+        暗号文はa・b・cだけで構成されます。
+        コピーした暗号文は、必要な場所に保存してください。
+      </p>
+    </section>
+
+    <section id="text-decrypt" class="guide-section">
+      <h2>4. 文章を復号する</h2>
+      <ol>
+        <li>暗号化に使用したものと同じ鍵を読み込みます。</li>
+        <li>復号したい暗号文を入力欄に貼り付けます。</li>
+        <li>文章の復号ボタンを押します。</li>
+        <li>復号された文章を確認します。</li>
+      </ol>
+
+      <p class="notice">
+        鍵が異なる場合や暗号文が破損している場合は、
+        正しく復号できません。
+      </p>
+    </section>
+
+    <section id="file-encrypt" class="guide-section">
+      <h2>5. ファイルを暗号化する</h2>
+      <ol>
+        <li>暗号鍵を準備します。</li>
+        <li>ファイルの暗号化機能を選択します。</li>
+        <li>暗号化したいファイルを指定します。</li>
+        <li>暗号化を開始します。</li>
+        <li>保存先を指定する画面が表示された場合は、保存先を選択します。</li>
+        <li>処理が完了するまで待ちます。</li>
+      </ol>
+
+      <p>
+        暗号化されたファイルは <code>.abcdata</code> 形式で保存されます。
+        元のファイル名やファイル形式などの情報も暗号化されます。
+      </p>
+
+      <p>
+        ファイルの大きさによっては、処理に時間がかかる場合があります。
+        進行状況を確認しながら待ってください。
+      </p>
+    </section>
+
+    <section id="file-decrypt" class="guide-section">
+      <h2>6. ファイルを復号する</h2>
+      <ol>
+        <li>暗号化に使用したものと同じ鍵を読み込みます。</li>
+        <li>ファイルの復号機能を選択します。</li>
+        <li>復号したい <code>.abcdata</code> ファイルを指定します。</li>
+        <li>復号を開始します。</li>
+        <li>保存先を指定する画面が表示された場合は、保存先を選択します。</li>
+        <li>処理が完了するまで待ちます。</li>
+      </ol>
+
+      <p>
+        正しく復号できると、元のファイル名とファイル形式で保存されます。
+      </p>
+    </section>
+
+    <section id="clear" class="guide-section">
+      <h2>7. 入力内容を消去する</h2>
+      <p>
+        入力内容や暗号文などをまとめて消去したい場合は、
+        すべて消去する機能を使用します。
+      </p>
+      <p>
+        この操作では文章の入力欄・暗号文の出力欄・ファイルの選択内容が
+        消去されます。ただし、読み込み済みの暗号鍵は消去されません。
+      </p>
+    </section>
+
+    <section id="caution" class="guide-section">
+      <h2>8. 使用上の注意</h2>
+
+      <ul>
+        <li>
+          <strong>暗号鍵を大切に保管してください。</strong>
+          鍵を紛失すると、暗号化したデータを復号できなくなる可能性があります。
+        </li>
+        <li>
+          <strong>暗号鍵を他人に公開しないでください。</strong>
+          鍵ファイルは暗号化されていないため、取り扱いに注意してください。
+        </li>
+        <li>
+          <strong>暗号文や暗号化ファイルを安全に保管してください。</strong>
+          大切なデータは、暗号化前の元データも含めてバックアップを取ることをおすすめします。
+        </li>
+        <li>
+          <strong>通信環境に注意してください。</strong>
+          Web Crypto APIを利用するため、HTTPSまたはlocalhostでの利用を推奨します。
+        </li>
+        <li>
+          <strong>処理中はページを閉じないでください。</strong>
+          ファイルの暗号化・復号中にページを閉じると、処理が中断される場合があります。
+        </li>
+      </ul>
+    </section>
+
+    <section id="trouble" class="guide-section">
+      <h2>9. 困ったときは</h2>
+
+      <div class="trouble-item">
+        <h3>「鍵が違うか、暗号文が破損しています」と表示される</h3>
+        <p>
+          使用している鍵が正しいか、暗号文が途中で欠けたり
+          書き換わったりしていないか確認してください。
+        </p>
+      </div>
+
+      <div class="trouble-item">
+        <h3>ファイルを復号できない</h3>
+        <p>
+          正しい鍵を使用しているか、ファイルが破損していないか確認してください。
+        </p>
+      </div>
+
+      <div class="trouble-item">
+        <h3>暗号化・復号が始まらない</h3>
+        <p>
+          対応しているブラウザを使用しているか、
+          HTTPSまたはlocalhostでページを開いているか確認してください。
+        </p>
+      </div>
+
+      <div class="trouble-item">
+        <h3>処理に時間がかかる</h3>
+        <p>
+          特に大きなファイルでは、処理に時間がかかることがあります。
+          進行状況を確認してください。
+        </p>
+      </div>
+    </section>
+
+    <section class="more-info">
+      <h2>もっと詳しく知りたい方へ</h2>
+      <p>
+        暗号化方式やデータ形式など、ABC Cipherの技術的な仕様については
+        仕様書をご覧ください。
+      </p>
+      <a href="specification.html" class="button">
+        技術仕様書を見る
+      </a>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; ABC Cipher</p>
+    <a href="index.html">トップページへ戻る</a>
+  </footer>
+</body>
+</html>
