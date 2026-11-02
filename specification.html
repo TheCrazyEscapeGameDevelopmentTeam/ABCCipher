@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ABC Cipher v3の利用方法と技術仕様を解説します。">
+  <title>技術仕様書 | ABC Cipher</title>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="index.html" class="site-logo">ABC Cipher</a>
+
+      <nav class="main-nav" aria-label="メインメニュー">
+        <a href="index.html">ホーム</a>
+        <a href="guide.html">使い方</a>
+        <a href="specification.html" aria-current="page">仕様書</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-heading">
+      <p class="eyebrow">TECHNICAL SPECIFICATION</p>
+      <h1>ABC Cipher v3 技術仕様書</h1>
+      <p>
+        ABC Cipherの利用方法、暗号化方式、データ構造、
+        ファイル形式などについて説明します。
+      </p>
+    </section>
+
+    <nav class="toc" aria-label="ページ内目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#overview">概要</a></li>
+        <li><a href="#basic-spec">基本仕様</a></li>
+        <li><a href="#environment">動作環境</a></li>
+        <li><a href="#key-spec">暗号鍵の仕様</a></li>
+        <li><a href="#abc-encoding">ABCエンコード方式</a></li>
+        <li><a href="#text-encryption">文章の暗号化方式</a></li>
+        <li><a href="#text-decryption">文章の復号方式</a></li>
+        <li><a href="#file-format">ファイル暗号化形式</a></li>
+        <li><a href="#file-encryption">ファイル暗号化処理</a></li>
+        <li><a href="#file-decryption">ファイル復号処理</a></li>
+        <li><a href="#compatibility">互換性</a></li>
+        <li><a href="#security">セキュリティ上の注意</a></li>
+        <li><a href="#limitations">制限事項</a></li>
+        <li><a href="#troubleshooting">エラーとトラブル</a></li>
+      </ol>
+    </nav>
+
+    <!-- 1. 概要 -->
+    <section id="overview" class="guide-section">
+      <h2>1. 概要</h2>
+
+      <p>
+        ABC Cipherは、文章やファイルを暗号化・復号するための
+        Webアプリケーションです。
+      </p>
+
+      <p>
+        暗号化にはAES-256-GCMを採用しています。
+        また、文章の暗号文は独自のABCエンコード方式によって、
+        a・b・cの3種類の文字だけで表現されます。
+      </p>
+
+      <h3>主な機能</h3>
+      <ul>
+        <li>256ビットの暗号鍵の生成</li>
+        <li>暗号鍵ファイル（.abckey）の保存・読み込み</li>
+        <li>文章の暗号化・復号</li>
+        <li>ファイルの暗号化・復号</li>
+        <li>大容量ファイルに対応した分割暗号化</li>
+        <li>処理の進行状況の表示</li>
+        <li>暗号化・復号処理のキャンセル</li>
+      </ul>
+
+      <h3>設計上の特徴</h3>
+      <p>
+        文章の暗号文にはABCエンコードを使用し、
+        ファイルにはバイナリ形式の独自データ構造を使用します。
+      </p>
+
+      <p>
+        ファイル暗号化ではデータを1MiB単位に分割し、
+        各チャンクを個別に認証付き暗号化します。
+        これにより、ファイル全体を一度に暗号化する方式とは異なり、
+        分割単位で処理を進めることができます。
+      </p>
+    </section>
+
+    <!-- 2. 基本仕様 -->
+    <section id="basic-spec" class="guide-section">
+      <h2>2. 基本仕様</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>仕様</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>アプリケーション名</td>
+            <td>ABC Cipher</td>
+          </tr>
+          <tr>
+            <td>バージョン</td>
+            <td>v3</td>
+          </tr>
+          <tr>
+            <td>暗号化アルゴリズム</td>
+            <td>AES-256-GCM</td>
+          </tr>
+          <tr>
+            <td>暗号鍵の長さ</td>
+            <td>256ビット（32バイト）</td>
+          </tr>
+          <tr>
+            <td>認証タグの長さ</td>
+            <td>128ビット（16バイト）</td>
+          </tr>
+          <tr>
+            <td>文章の暗号文形式</td>
+            <td>ABCエンコード</td>
+          </tr>
+          <tr>
+            <td>文章の暗号文に使う文字</td>
+            <td>a・b・c</td>
+          </tr>
+          <tr>
+            <td>鍵ファイルの拡張子</td>
+            <td>.abckey</td>
+          </tr>
+          <tr>
+            <td>暗号化ファイルの拡張子</td>
+            <td>.abcdata</td>
+          </tr>
+          <tr>
+            <td>ファイル分割サイズ</td>
+            <td>1MiB（1,048,576バイト）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="note">
+        文章とファイルでは、暗号化前後のデータ構造や
+        IV（初期化ベクトル）の生成方法が異なります。
+      </p>
+    </section>
+
+    <!-- 3. 動作環境 -->
+    <section id="environment" class="guide-section">
+      <h2>3. 動作環境</h2>
+
+      <h3>必要な機能</h3>
+      <ul>
+        <li>JavaScriptが利用できること</li>
+        <li>Web Crypto APIが利用できること</li>
+        <li>File APIが利用できること</li>
+        <li>Blobによるファイル出力に対応していること</li>
+      </ul>
+
+      <h3>セキュアコンテキスト</h3>
+      <p>
+        ABC CipherはWeb Crypto APIを使用します。
+        このAPIを利用するため、HTTPSまたはlocalhostでの実行を推奨します。
+      </p>
+
+      <h3>ファイル保存方式</h3>
+      <p>
+        利用環境が対応している場合は、
+        File System Access APIの
+        <code>showSaveFilePicker</code>を使用して、
+        保存先を指定しながらファイルを書き込みます。
+      </p>
+
+      <p>
+        この機能が利用できない場合は、Blobを作成して
+        ダウンロードする方式に切り替わります。
+      </p>
+    </section>
+
+    <!-- 4. 暗号鍵 -->
+    <section id="key-spec" class="guide-section">
+      <h2>4. 暗号鍵の仕様</h2>
+
+      <h3>4.1 鍵の生成</h3>
+      <p>
+        暗号鍵はWeb Crypto APIの
+        <code>crypto.getRandomValues()</code>を使用して生成します。
+      </p>
+
+      <p>
+        生成される鍵は32バイト、すなわち256ビットです。
+        これはAES-256-GCMで使用する鍵の長さです。
+      </p>
+
+      <h3>4.2 鍵の内部表現</h3>
+      <p>
+        鍵はBase64URL形式に変換して扱います。
+        Base64URLは、通常のBase64で使われる一部の記号を
+        URLで扱いやすい文字に置き換えた形式です。
+      </p>
+
+      <h3>4.3 鍵ファイル</h3>
+      <p>
+        鍵ファイルの拡張子は <code>.abckey</code> です。
+        ファイルの内容は次の形式です。
+      </p>
+
+      <pre class="result">ABC Cipher Key File
+Version: 2
+Key: ＜Base64URL形式の暗号鍵＞</pre>
+
+      <p>
+        鍵ファイルには暗号鍵がそのまま記録されます。
+        鍵ファイル自体は暗号化されていません。
+      </p>
+
+      <h3>4.4 鍵の取り扱い</h3>
+      <ul>
+        <li>暗号化と復号には同じ鍵を使用します。</li>
+        <li>鍵を紛失すると、暗号化したデータを復号できなくなります。</li>
+        <li>鍵ファイルを第三者に渡すと、暗号文を復号される可能性があります。</li>
+      </ul>
+    </section>
+
+    <!-- 5. ABCエンコード -->
+    <section id="abc-encoding" class="guide-section">
+      <h2>5. ABCエンコード方式</h2>
+
+      <h3>5.1 概要</h3>
+      <p>
+        ABCエンコードは、バイト列をa・b・cの3種類の文字だけで
+        表現するための方式です。
+      </p>
+
+      <p>
+        この方式では、各バイトを3進数として表現し、
+        6桁にそろえて文字列に変換します。
+      </p>
+
+      <h3>5.2 変換規則</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>3進数の数字</th>
+            <th>対応する文字</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>a</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>b</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>c</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        1バイトは0～255の値を持ちます。
+        3進数6桁では最大729通りの値を表現できるため、
+        1バイトの値をすべて表現できます。
+      </p>
+
+      <h3>5.3 データ長</h3>
+      <p>
+        1バイトにつき6文字を使用します。
+        したがって、変換後の文字列の長さは
+        元のバイト数の6倍になります。
+      </p>
+
+      <p>
+        例えば、元データが10バイトなら、
+        ABCエンコード後は60文字になります。
+      </p>
+
+      <h3>5.4 復号時の検証</h3>
+      <p>
+        ABCエンコードされた文字列をバイト列に戻す際には、
+        次の条件を確認します。
+      </p>
+
+      <ul>
+        <li>使用されている文字がa・b・cのみであること</li>
+        <li>文字列の長さが6の倍数であること</li>
+        <li>各6文字を数値に変換した結果が255以下であること</li>
+      </ul>
+
+      <p class="notice">
+        ABCエンコードは暗号化方式ではありません。
+        データをa・b・cだけで表現するための符号化方式です。
+        データの機密性はAES-256-GCMによって確保します。
+      </p>
+    </section>
+
+    <!-- 6. 文章の暗号化 -->
+    <section id="text-encryption" class="guide-section">
+      <h2>6. 文章の暗号化方式</h2>
+
+      <h3>6.1 処理の流れ</h3>
+      <ol>
+        <li>入力された文章をUTF-8形式のバイト列に変換する。</li>
+        <li>12バイトのランダムなIVを生成する。</li>
+        <li>AES-256-GCMで暗号化する。</li>
+        <li>暗号化結果にヘッダー情報を付加する。</li>
+        <li>全体をABCエンコードする。</li>
+      </ol>
+
+      <h3>6.2 暗号化アルゴリズム</h3>
+      <table>
+        <tbody>
+          <tr>
+            <th>項目</th>
+            <th>値</th>
+          </tr>
+          <tr>
+            <td>アルゴリズム</td>
+            <td>AES-GCM</td>
+          </tr>
+          <tr>
+            <td>鍵長</td>
+            <td>256ビット</td>
+          </tr>
+          <tr>
+            <td>IV長</td>
+            <td>12バイト</td>
+          </tr>
+          <tr>
+            <td>認証タグ長</td>
+            <td>128ビット</td>
+          </tr>
+          <tr>
+            <td>追加認証データ</td>
+            <td>ASCII文字列 ABCD</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>6.3 データ構造</h3>
+      <p>
+        現行の文章暗号文は、暗号化されたデータに
+        ヘッダー情報を付加した構造です。
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>順序</th>
+            <th>データ</th>
+            <th>長さ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>マジック値（ABCD）</td>
+            <td>4バイト</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>バージョン番号（1）</td>
+            <td>1バイト</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>IV</td>
+            <td>12バイト</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>暗号文と認証タグ</td>
+            <td>可変長</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>6.4 マジック値とバージョン</h3>
+      <p>
+        マジック値は <code>ABCD</code> です。
+        データがABC Cipherの現行形式であることを識別するために使用します。
+      </p>
+
+      <p>
+        その直後の1バイトはバージョン番号です。
+        現行の文章暗号文ではバージョン番号1を使用します。
+      </p>
+
+      <h3>6.5 追加認証データ（AAD）</h3>
+      <p>
+        文章の暗号化では、マジック値 <code>ABCD</code> を
+        AES-GCMの追加認証データ（AAD）として指定します。
+      </p>
+
+      <p>
+        AADは暗号化されませんが、認証の対象になります。
+        そのため、AADが異なる場合は正しく認証されません。
+      </p>
+
+      <h3>6.6 暗号文の長さ</h3>
+      <p>
+        AES-GCMでは、暗号文の長さは元の平文と同じ長さになり、
+        さらに16バイトの認証タグが付加されます。
+      </p>
+
+      <p>
+        文章暗号文のバイナリデータ全体の長さは、
+        次のようになります。
+      </p>
+
+      <pre class="result">4 + 1 + 12 + 平文のバイト数 + 16</pre>
+
+      <p>
+        このバイナリデータをABCエンコードするため、
+        最終的な文字列の長さは上記の6倍になります。
+      </p>
+    </section>
+
+    <!-- 7. 文章の復号 -->
+    <section id="text-decryption" class="guide-section">
+      <h2>7. 文章の復号方式</h2>
+
+      <h3>7.1 処理の流れ</h3>
+      <ol>
+        <li>入力された暗号文を検証する。</li>
+        <li>ABCエンコードを解除してバイト列に戻す。</li>
+        <li>マジック値とバージョン番号を確認する。</li>
+        <li>IVと暗号文を取り出す。</li>
+        <li>AES-256-GCMで認証・復号する。</li>
+        <li>復号したバイト列をUTF-8形式の文章に変換する。</li>
+      </ol>
+
+      <h3>7.2 認証と復号</h3>
+      <p>
+        AES-GCMでは、復号時に認証タグの検証が行われます。
+        暗号文や認証に関係するデータが変更されていた場合、
+        認証に失敗し、復号結果は得られません。
+      </p>
+
+      <h3>7.3 対応する文章形式</h3>
+      <p>
+        現行形式のほか、旧形式の文章暗号文にも対応しています。
+        詳細は「11. 互換性」で説明します。
+      </p>
+    </section>
+
+    <!-- 第2部はここから追加 -->
+    <!-- 次回、ファイル暗号化形式以降を追加する -->
+
+    <section class="more-info">
+      <h2>使い方を確認したい方へ</h2>
+      <p>
+        実際の操作手順については、使い方ガイドをご覧ください。
+      </p>
+      <a href="guide.html" class="button">使い方ガイドを見る</a>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; ABC Cipher</p>
+    <a href="index.html">トップページへ戻る</a>
+  </footer>
+</body>
+</html>
