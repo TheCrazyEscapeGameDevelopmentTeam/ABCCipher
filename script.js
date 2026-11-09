@@ -1309,3 +1309,79 @@ if (installButton) {
     deferredInstallPrompt = null;
   });
 }
+
+// ========================================
+// ページ読み込みインジケーター
+// ========================================
+
+(() => {
+  const indicator = document.getElementById("loading-indicator");
+
+  if (!indicator) return;
+
+  // 読み込み表示
+  function showLoading() {
+    indicator.classList.add("active");
+    indicator.setAttribute("aria-hidden", "false");
+  }
+
+  // 読み込み表示を終了
+  function hideLoading() {
+    indicator.classList.remove("active");
+    indicator.setAttribute("aria-hidden", "true");
+  }
+
+  // 初期状態
+  showLoading();
+
+  // ページの読み込み完了を待つ
+  if (document.readyState === "complete") {
+    hideLoading();
+  } else {
+    window.addEventListener("load", hideLoading, { once: true });
+  }
+
+  // ページ移動時に表示
+  document.addEventListener("click", event => {
+    const link = event.target.closest("a");
+
+    if (!link) return;
+
+    // 通常のページ移動だけ対象にする
+    if (
+      link.target === "_blank" ||
+      link.hasAttribute("download") ||
+      link.href.startsWith("javascript:") ||
+      link.href.startsWith("mailto:")
+    ) {
+      return;
+    }
+
+    const destination = new URL(link.href, location.href);
+
+    // 同じページ内の移動は対象外
+    if (
+      destination.origin !== location.origin ||
+      destination.pathname === location.pathname
+        && destination.search === location.search
+    ) {
+      return;
+    }
+
+    showLoading();
+  });
+
+  // ページが非表示になる直前
+  window.addEventListener("pagehide", showLoading);
+
+  // 戻る・進むでページが復元された場合
+  window.addEventListener("pageshow", hideLoading);
+
+  // ブラウザの戻る・進むなどで表示状態が変わった場合
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" &&
+        document.readyState === "complete") {
+      hideLoading();
+    }
+  });
+})();
