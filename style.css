@@ -384,3 +384,51 @@ footer a:hover {
 #install-message {
   margin-top: 8px;
 }
+
+/* ===== ページ読み込みインジケーター ===== */
+
+#loading-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: transparent;
+  z-index: 9999;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+
+#loading-indicator.active {
+  opacity: 1;
+}
+
+#loading-indicator::after {
+  content: "";
+  display: block;
+  width: 35%;
+  height: 100%;
+  background: #79baff;
+  box-shadow: 0 0 10px #79baff;
+  animation: loading-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes loading-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+/* 動きを減らす設定を使っている場合 */
+@media (prefers-reduced-motion: reduce) {
+  #loading-indicator::after {
+    animation: none;
+    width: 100%;
+  }
+}
