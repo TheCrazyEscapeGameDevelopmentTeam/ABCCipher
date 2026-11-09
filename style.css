@@ -355,3 +355,32 @@ footer a:hover {
     padding: 17px;
   }
 }
+
+/* ===== PWAインストール ===== */
+
+.install-area {
+  text-align: center;
+  margin: 20px 0;
+}
+
+#install-button {
+  background: #347fda;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 13px 22px;
+  border: 1px solid #79baff;
+  box-shadow: 0 4px 15px rgba(52, 127, 218, 0.25);
+}
+
+#install-button:hover {
+  background: #559cf1;
+  transform: translateY(-1px);
+}
+
+#install-button[hidden] {
+  display: none;
+}
+
+#install-message {
+  margin-top: 8px;
+}
