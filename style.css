@@ -1,3 +1,22 @@
+:root {
+  --accent-color: #79baff;
+  --base-font-size: 16px;
+}
+
+:root[data-theme="dark"] {
+  --background-color: #101522;
+  --panel-color: #1b2538;
+  --text-color: #e8edff;
+  --input-background: #0d1422;
+}
+
+:root[data-theme="light"] {
+  --background-color: #edf2fa;
+  --panel-color: #ffffff;
+  --text-color: #17243a;
+  --input-background: #f5f7fb;
+}
+
 * { box-sizing: border-box; }
 
 body {
