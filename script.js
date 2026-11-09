@@ -1229,3 +1229,83 @@ if ("serviceWorker" in navigator) {
       });
   });
 }
+
+/* ========================================
+   PWA インストール機能
+======================================== */
+
+let deferredInstallPrompt = null;
+
+const installButton = document.getElementById("install-button");
+const installMessage = document.getElementById("install-message");
+
+// インストール済みか確認
+function isAppInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches
+    || navigator.standalone === true;
+}
+
+// インストールボタンの初期設定
+if (installButton) {
+
+  // インストール済みならボタンを表示しない
+  if (isAppInstalled()) {
+    installButton.hidden = true;
+  }
+
+  // インストール可能になったとき
+  window.addEventListener("beforeinstallprompt", event => {
+
+    // ブラウザ標準の自動表示を抑制
+    event.preventDefault();
+
+    // イベントを保存
+    deferredInstallPrompt = event;
+
+    // ボタンを表示
+    installButton.hidden = false;
+  });
+
+  // ボタンが押されたとき
+  installButton.addEventListener("click", async () => {
+
+    if (!deferredInstallPrompt) {
+      return;
+    }
+
+    // インストール確認画面を表示
+    deferredInstallPrompt.prompt();
+
+    // 利用者の選択を取得
+    const result = await deferredInstallPrompt.userChoice;
+
+    if (installMessage) {
+      if (result.outcome === "accepted") {
+        installMessage.textContent =
+          "インストールが開始されました。";
+      } else {
+        installMessage.textContent =
+          "インストールはキャンセルされました。";
+      }
+    }
+
+    // イベントは再利用できないため破棄
+    deferredInstallPrompt = null;
+
+    // ボタンを非表示
+    installButton.hidden = true;
+  });
+
+  // インストールが完了したとき
+  window.addEventListener("appinstalled", () => {
+
+    installButton.hidden = true;
+
+    if (installMessage) {
+      installMessage.textContent =
+        "ABC Cipherのインストールが完了しました！";
+    }
+
+    deferredInstallPrompt = null;
+  });
+}
