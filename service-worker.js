@@ -3,7 +3,7 @@
 // ========================================
 
 // キャッシュのバージョン
-const CACHE_NAME = "abc-cipher-v1";
+const CACHE_NAME = "abc-cipher-v2";
 
 // キャッシュするファイル
 const PRECACHE_FILES = [
