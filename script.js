@@ -1207,3 +1207,25 @@ document.getElementById("fileInput").addEventListener(
       : "ファイルは選択されていません。";
   }
 );
+
+// ========================================
+// Service Worker 登録
+// ========================================
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(registration => {
+        console.log(
+          "ABC Cipher Service Worker registered:",
+          registration.scope
+        );
+      })
+      .catch(error => {
+        console.error(
+          "Service Worker registration failed:",
+          error
+        );
+      });
+  });
+}
