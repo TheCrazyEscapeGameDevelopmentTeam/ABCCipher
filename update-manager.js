@@ -1,29 +1,39 @@
+"use strict";
+
 (async () => {
   if (!("serviceWorker" in navigator)) return;
   if (!window.ABCSettings) return;
 
-  // このページがすでにService Workerに
-  // 制御されているかを記録
   const hadController = !!navigator.serviceWorker.controller;
 
   let registration;
   let reloading = false;
   let notifiedWorker = null;
 
-  // 更新適用後に新しいアプリを読み込む
-  navigator.serviceWorker.addEventListener(
-    "controllerchange",
-    () => {
-      if (hadController && !reloading) {
-        reloading = true;
-        location.reload();
-      }
-    }
-  );
+  // --------------------------------------
+  // 通信方式の判定
+  // --------------------------------------
+
+  function isCellular() {
+    const connection =
+      navigator.connection ||
+      navigator.mozConnection ||
+      navigator.webkitConnection;
+
+    return connection?.type === "cellular";
+  }
+
+  // --------------------------------------
+  // 更新設定
+  // --------------------------------------
 
   function getUpdateMode() {
     return ABCSettings.get().updateMode;
   }
+
+  // --------------------------------------
+  // 更新を適用
+  // --------------------------------------
 
   function activateUpdate(worker) {
     if (!worker) return;
@@ -32,6 +42,10 @@
       type: "ACTIVATE_UPDATE"
     });
   }
+
+  // --------------------------------------
+  // 手動更新通知
+  // --------------------------------------
 
   function notifyManualUpdate(worker) {
     if (!worker || notifiedWorker === worker) return;
@@ -50,14 +64,17 @@
     }
   }
 
+  // --------------------------------------
+  // 待機中の更新を確認
+  // --------------------------------------
+
   function handleWaitingWorker(isStartup) {
     const worker = registration.waiting;
+
     if (!worker) return;
 
-    const mode = getUpdateMode();
-
-    if (mode === "auto") {
-      // 起動時から待機していた更新だけを適用
+    if (getUpdateMode() === "auto") {
+      // 自動更新は次回起動時だけ適用
       if (isStartup) {
         activateUpdate(worker);
       }
@@ -65,6 +82,10 @@
       notifyManualUpdate(worker);
     }
   }
+
+  // --------------------------------------
+  // インストール中のWorkerを監視
+  // --------------------------------------
 
   function watchInstallingWorker(worker) {
     if (!worker) return;
@@ -75,60 +96,105 @@
       // 初回インストールでは通知しない
       if (!hadController) return;
 
-      // 今回の起動中に見つかった更新は待機させる
+      // 使用中に発見した更新は待機
       handleWaitingWorker(false);
     });
   }
 
-  try {
-    registration = await navigator.serviceWorker.register(
-      "./service-worker.js",
-      { updateViaCache: "none" }
-    );
+  // --------------------------------------
+  // 新しいWorkerの発見
+  // --------------------------------------
 
-    // 起動時点ですでに待機中の更新があるか確認
-    if (registration.waiting && hadController) {
-      handleWaitingWorker(true);
+  try {
+    // 既存の登録を先に確認
+    registration =
+      await navigator.serviceWorker.getRegistration();
+
+    // 初回だけ登録
+    if (!registration) {
+      registration =
+        await navigator.serviceWorker.register(
+          "./service-worker.js",
+          { updateViaCache: "none" }
+        );
     }
 
-    // 起動時にサーバーへ更新を確認
-    await registration.update();
-
-    // 新しいService Workerが見つかったとき
+    // 更新発見イベントを先に登録
     registration.addEventListener("updatefound", () => {
       watchInstallingWorker(registration.installing);
     });
 
-    // 登録時点ですでにインストール中の場合
+    // すでにインストール中なら監視
     if (registration.installing) {
       watchInstallingWorker(registration.installing);
     }
 
-    // 設定変更時の処理
-    window.addEventListener("abc-settings-changed", () => {
-      // 手動モードに切り替えたとき、
-      // すでに待機中の更新があれば通知する
-      if (getUpdateMode() === "manual") {
-        handleWaitingWorker(false);
-      }
+    // 起動時点で待機中の更新があるか確認
+    if (registration.waiting && hadController) {
+      handleWaitingWorker(true);
+    }
 
-      // 自動モードに変えても、
-      // 現在の起動中には更新しない
-    });
+    // ----------------------------------
+    // 更新確認
+    // ----------------------------------
 
-    // アプリに戻ってきたときにも更新確認
-    document.addEventListener("visibilitychange", () => {
-      if (
-        document.visibilityState === "visible" &&
-        navigator.onLine
-      ) {
-        registration.update().catch(error => {
-          console.log("更新確認に失敗:", error);
-        });
+    // モバイルデータ通信と判定できた場合は、
+    // 明示的な更新確認を控える
+    if (!isCellular()) {
+      await registration.update();
+    }
+
+    // ----------------------------------
+    // 設定変更
+    // ----------------------------------
+
+    window.addEventListener(
+      "abc-settings-changed",
+      () => {
+        if (getUpdateMode() === "manual") {
+          handleWaitingWorker(false);
+        }
+
+        // autoに変更しても、使用中は適用しない
       }
-    });
+    );
+
+    // ----------------------------------
+    // アプリに戻ったとき
+    // ----------------------------------
+
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (
+          document.visibilityState === "visible" &&
+          !isCellular()
+        ) {
+          registration.update().catch(error => {
+            console.log("更新確認に失敗:", error);
+          });
+        }
+      }
+    );
+
+    // ----------------------------------
+    // 更新適用後にページを再読み込み
+    // ----------------------------------
+
+    navigator.serviceWorker.addEventListener(
+      "controllerchange",
+      () => {
+        if (hadController && !reloading) {
+          reloading = true;
+          location.reload();
+        }
+      }
+    );
 
   } catch (error) {
-    console.error("Service Workerの更新管理に失敗:", error);
+    console.error(
+      "Service Workerの更新管理に失敗:",
+      error
+    );
   }
 })();
