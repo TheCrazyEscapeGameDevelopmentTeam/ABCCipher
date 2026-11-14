@@ -6,15 +6,33 @@ const DEFAULT_SETTINGS = {
   animations: true
 };
 
+const SETTINGS_KEY = "abc-cipher-settings";
+
 function loadSettings() {
   try {
     const saved = JSON.parse(
-      localStorage.getItem("abc-cipher-settings")
+      localStorage.getItem(SETTINGS_KEY)
     );
 
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) {
+      return { ...DEFAULT_SETTINGS };
+    }
+
     return {
-      ...DEFAULT_SETTINGS,
-      ...(saved && typeof saved === "object" ? saved : {})
+      updateMode: ["auto", "manual"].includes(saved.updateMode)
+        ? saved.updateMode : DEFAULT_SETTINGS.updateMode,
+
+      theme: ["dark", "light", "system"].includes(saved.theme)
+        ? saved.theme : DEFAULT_SETTINGS.theme,
+
+      accentColor: /^#[0-9a-fA-F]{6}$/.test(saved.accentColor)
+        ? saved.accentColor : DEFAULT_SETTINGS.accentColor,
+
+      fontSize: ["small", "normal", "large"].includes(saved.fontSize)
+        ? saved.fontSize : DEFAULT_SETTINGS.fontSize,
+
+      animations: typeof saved.animations === "boolean"
+        ? saved.animations : DEFAULT_SETTINGS.animations
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
@@ -25,7 +43,7 @@ let settings = loadSettings();
 
 function saveSettings() {
   localStorage.setItem(
-    "abc-cipher-settings",
+    SETTINGS_KEY,
     JSON.stringify(settings)
   );
 }
@@ -33,7 +51,6 @@ function saveSettings() {
 function applySettings() {
   const root = document.documentElement;
 
-  // テーマ
   let theme = settings.theme;
 
   if (theme === "system") {
@@ -43,15 +60,14 @@ function applySettings() {
   }
 
   root.dataset.theme = theme;
+  root.dataset.animations = settings.animations ? "on" : "off";
 
-  // アクセントカラー
   root.style.setProperty(
     "--accent-color",
     settings.accentColor
   );
 
-  // 文字サイズ
-  const sizes = {
+  const fontSizes = {
     small: "14px",
     normal: "16px",
     large: "19px"
@@ -59,29 +75,56 @@ function applySettings() {
 
   root.style.setProperty(
     "--base-font-size",
-    sizes[settings.fontSize] || sizes.normal
+    fontSizes[settings.fontSize]
   );
-
-  // アニメーション
-  root.dataset.animations =
-    settings.animations ? "on" : "off";
 }
 
 function updateSetting(name, value) {
+  if (!(name in DEFAULT_SETTINGS)) return;
+
   settings[name] = value;
+
+  // 値を検証しながら保存する
+  settings = {
+    ...DEFAULT_SETTINGS,
+    ...settings
+  };
+
   saveSettings();
   applySettings();
+
+  // アップデート方式を変更したら、
+  // 更新管理側にも変更を知らせる
+  window.dispatchEvent(
+    new CustomEvent("abc-settings-changed")
+  );
 }
 
-// 他のJavaScriptから利用できるようにする
+function resetSettings() {
+  settings = { ...DEFAULT_SETTINGS };
+  saveSettings();
+  applySettings();
+
+  window.dispatchEvent(
+    new CustomEvent("abc-settings-changed")
+  );
+}
+
 window.ABCSettings = {
   get: () => ({ ...settings }),
   update: updateSetting,
-  reset: () => {
-    settings = { ...DEFAULT_SETTINGS };
-    saveSettings();
+  reset: resetSettings
+};
+
+// システムテーマ変更にも追従
+const themeMedia = window.matchMedia(
+  "(prefers-color-scheme: light)"
+);
+
+themeMedia.addEventListener?.("change", () => {
+  if (settings.theme === "system") {
     applySettings();
   }
-};
+});
 
 applySettings();
