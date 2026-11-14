@@ -68,31 +68,64 @@ self.addEventListener("activate", event => {
 // 通信処理
 // ========================================
 
+
 self.addEventListener("fetch", event => {
   const request = event.request;
 
-  // GET以外は処理しない
-  if (request.method !== "GET") {
-    return;
-  }
+  if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
-  // 同じオリジン以外は処理しない
-  if (url.origin !== self.location.origin) {
+  // 外部サイトへの通信は対象外
+  if (url.origin !== self.location.origin) return;
+
+  // モバイルデータ通信かどうかを判定
+  const isCellular =
+    self.navigator.connection?.type === "cellular";
+
+  // モバイルデータ通信ならキャッシュ優先
+  if (isCellular) {
+    event.respondWith(
+      (async () => {
+        const cached = await caches.match(request);
+
+        if (cached) {
+          return cached;
+        }
+
+        try {
+          const response = await fetch(request);
+
+          if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
+          }
+
+          return response;
+        } catch {
+          if (request.mode === "navigate") {
+            return await caches.match("./index.html");
+          }
+
+          return new Response("オフラインです。", {
+            status: 503,
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8"
+            }
+          });
+        }
+      })()
+    );
+
     return;
   }
 
-
-  // --------------------------------------
-  // HTMLページ：ネットワーク優先
-  // --------------------------------------
+  // ここから下はWi-Fiなど、通常時の動作
 
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then(response => {
-          // 正常なレスポンスだけキャッシュする
           if (response.ok) {
             const copy = response.clone();
 
@@ -103,20 +136,47 @@ self.addEventListener("fetch", event => {
           return response;
         })
         .catch(async () => {
-          // ネットワークに接続できない場合
           const cached = await caches.match(request);
 
-          if (cached) {
-            return cached;
-          }
+          if (cached) return cached;
 
-          // キャッシュにページがない場合はトップページを表示
           return await caches.match("./index.html");
         })
     );
 
     return;
   }
+
+  // CSS・JS・画像などはキャッシュ優先
+  const path = url.pathname;
+
+  const isStaticFile =
+    path.endsWith("/style.css") ||
+    path.endsWith("/script.js") ||
+    path.endsWith("/settings.js") ||
+    path.endsWith("/manifest.json") ||
+    path.endsWith("/icon-192.png") ||
+    path.endsWith("/icon-512.png");
+
+  if (isStaticFile) {
+    event.respondWith(
+      caches.match(request).then(cached => {
+        if (cached) return cached;
+
+        return fetch(request).then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(request, copy));
+          }
+
+          return response;
+        });
+      })
+    );
+  }
+});
 
 
   // --------------------------------------
