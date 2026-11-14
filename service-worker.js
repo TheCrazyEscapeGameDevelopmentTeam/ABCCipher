@@ -1,18 +1,19 @@
+
+"use strict";
+
 // ========================================
 // ABC Cipher - Service Worker
 // ========================================
 
-// キャッシュのバージョン
-const CACHE_NAME = "abc-cipher-v3";
+const CACHE_NAME = "abc-cipher-v4";
 
-// キャッシュするファイル
 const PRECACHE_FILES = [
   "./",
   "./index.html",
   "./guide.html",
   "./specification.html",
   "./settings.html",
-  "./googlea84bdbef9c58fe9f.html"
+  "./googlea84bdbef9c58fe9f.html",
   "./style.css",
   "./script.js",
   "./settings.js",
@@ -23,16 +24,22 @@ const PRECACHE_FILES = [
 ];
 
 // ========================================
-// インストール処理
+// インストール
 // ========================================
 
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(PRECACHE_FILES))
-    // ここでは skipWaiting() を呼ばない！
   );
+
+  // ここではskipWaiting()を実行しない。
+  // 更新管理側からの指示を待つ。
 });
+
+// ========================================
+// 有効化
+// ========================================
 
 self.addEventListener("activate", event => {
   event.waitUntil(
@@ -49,19 +56,19 @@ self.addEventListener("activate", event => {
   );
 });
 
-// ページからの更新指示を受け取る
+// ========================================
+// 更新指示
+// ========================================
+
 self.addEventListener("message", event => {
   if (event.data?.type === "ACTIVATE_UPDATE") {
     event.waitUntil(self.skipWaiting());
   }
 });
 
-
-
 // ========================================
 // 通信処理
 // ========================================
-
 
 self.addEventListener("fetch", event => {
   const request = event.request;
@@ -70,22 +77,16 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
 
-  // 外部サイトへの通信は対象外
+  // 外部サイトは対象外
   if (url.origin !== self.location.origin) return;
 
-  // モバイルデータ通信かどうかを判定
-  const isCellular =
-    self.navigator.connection?.type === "cellular";
-
-  // モバイルデータ通信ならキャッシュ優先
-  if (isCellular) {
+  // ページ：キャッシュ優先
+  if (request.mode === "navigate") {
     event.respondWith(
       (async () => {
         const cached = await caches.match(request);
 
-        if (cached) {
-          return cached;
-        }
+        if (cached) return cached;
 
         try {
           const response = await fetch(request);
@@ -97,16 +98,12 @@ self.addEventListener("fetch", event => {
 
           return response;
         } catch {
-          if (request.mode === "navigate") {
-            return await caches.match("./index.html");
-          }
-
-          return new Response("オフラインです。", {
-            status: 503,
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8"
-            }
-          });
+          return (
+            await caches.match("./index.html") ||
+            new Response("オフラインです。", {
+              status: 503
+            })
+          );
         }
       })()
     );
@@ -114,101 +111,39 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // ここから下はWi-Fiなど、通常時の動作
-
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(request, copy));
-          }
-
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-
-          if (cached) return cached;
-
-          return await caches.match("./index.html");
-        })
-    );
-
-    return;
-  }
-
-  // CSS・JS・画像などはキャッシュ優先
-  const path = url.pathname;
-
+  // 静的ファイル：キャッシュ優先
   const isStaticFile =
-    path.endsWith("/style.css") ||
-    path.endsWith("/script.js") ||
-    path.endsWith("/settings.js") ||
-    path.endsWith("/manifest.json") ||
-    path.endsWith("/icon-192.png") ||
-    path.endsWith("/icon-512.png");
+    url.pathname.endsWith("/style.css") ||
+    url.pathname.endsWith("/script.js") ||
+    url.pathname.endsWith("/settings.js") ||
+    url.pathname.endsWith("/update-manager.js") ||
+    url.pathname.endsWith("/manifest.json") ||
+    url.pathname.endsWith("/icon-192.png") ||
+    url.pathname.endsWith("/icon-512.png") ||
+    url.pathname.endsWith("/googlea84bdbef9c58fe9f.html");
 
   if (isStaticFile) {
     event.respondWith(
-      caches.match(request).then(cached => {
+      (async () => {
+        const cached = await caches.match(request);
+
         if (cached) return cached;
 
-        return fetch(request).then(response => {
-          if (response.ok) {
-            const copy = response.clone();
+        try {
+          const response = await fetch(request);
 
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(request, copy));
+          if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
           }
 
           return response;
-        });
-      })
-    );
-  }
-});
-
-
-  // --------------------------------------
-  // 静的ファイル：キャッシュ優先
-  // --------------------------------------
-
-  const path = url.pathname;
-
-  const isStaticFile =
-    path.endsWith("/style.css") ||
-    path.endsWith("/script.js") ||
-    path.endsWith("/manifest.json") ||
-    path.endsWith("/icon-192.png") ||
-    path.endsWith("/icon-512.png");
-
-  if (isStaticFile) {
-    event.respondWith(
-      caches.match(request)
-        .then(cached => {
-          if (cached) {
-            return cached;
-          }
-
-          return fetch(request).then(response => {
-            if (response.ok) {
-              const copy = response.clone();
-
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(request, copy));
-            }
-
-            return response;
+        } catch {
+          return new Response("ファイルを取得できませんでした。", {
+            status: 503
           });
-        })
+        }
+      })()
     );
-
-    return;
   }
-
-  // その他の通信は通常どおりネットワークへ
 });
