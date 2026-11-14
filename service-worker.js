@@ -3,7 +3,7 @@
 // ========================================
 
 // キャッシュのバージョン
-const CACHE_NAME = "abc-cipher-v2";
+const CACHE_NAME = "abc-cipher-v3";
 
 // キャッシュするファイル
 const PRECACHE_FILES = [
@@ -11,15 +11,16 @@ const PRECACHE_FILES = [
   "./index.html",
   "./guide.html",
   "./specification.html",
+  "./settings.html",
+  "./googlea84bdbef9c58fe9f.html"
   "./style.css",
   "./script.js",
+  "./settings.js",
+  "./update-manager.js",
   "./manifest.json",
   "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./settings.html",
-  "./settings.js"
+  "./icons/icon-512.png"
 ];
-
 
 // ========================================
 // インストール処理
@@ -28,40 +29,33 @@ const PRECACHE_FILES = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(PRECACHE_FILES);
-      })
-      .then(() => {
-        // 新しいService Workerを待機させずに有効化
-        return self.skipWaiting();
-      })
+      .then(cache => cache.addAll(PRECACHE_FILES))
+    // ここでは skipWaiting() を呼ばない！
   );
 });
-
-
-// ========================================
-// 有効化処理
-// ========================================
 
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames
-            .filter(name => {
-              return name.startsWith("abc-cipher-")
-                && name !== CACHE_NAME;
-            })
-            .map(name => caches.delete(name))
-        );
-      })
-      .then(() => {
-        // 現在開いているページも制御対象にする
-        return self.clients.claim();
-      })
+      .then(cacheNames => Promise.all(
+        cacheNames
+          .filter(name =>
+            name.startsWith("abc-cipher-") &&
+            name !== CACHE_NAME
+          )
+          .map(name => caches.delete(name))
+      ))
+      .then(() => self.clients.claim())
   );
 });
+
+// ページからの更新指示を受け取る
+self.addEventListener("message", event => {
+  if (event.data?.type === "ACTIVATE_UPDATE") {
+    event.waitUntil(self.skipWaiting());
+  }
+});
+
 
 
 // ========================================
