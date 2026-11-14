@@ -8,6 +8,7 @@
   --panel-color: #1b2538;
   --text-color: #e8edff;
   --input-background: #0d1422;
+  --border-color: #405271;
 }
 
 :root[data-theme="light"] {
@@ -15,6 +16,34 @@
   --panel-color: #ffffff;
   --text-color: #17243a;
   --input-background: #f5f7fb;
+  --border-color: #c5d0e0;
+}
+
+body {
+  background: var(--background-color);
+  color: var(--text-color);
+  font-size: var(--base-font-size);
+}
+
+.panel {
+  background: var(--panel-color);
+  color: var(--text-color);
+}
+
+h1 {
+  color: var(--accent-color);
+}
+
+input,
+textarea,
+select {
+  background: var(--input-background);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+button {
+  background: var(--accent-color);
 }
 
 :root[data-animations="off"] *,
@@ -23,6 +52,7 @@
   animation: none !important;
   transition: none !important;
 }
+
 
 * { box-sizing: border-box; }
 
