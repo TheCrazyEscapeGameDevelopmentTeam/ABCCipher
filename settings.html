@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101522">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="settings.js" defer></script>
+  <title>設定 - ABC Cipher</title>
+
+  <style>
+    .setting-row {
+      margin: 18px 0;
+    }
+
+    .setting-row label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: bold;
+    }
+
+    .setting-row select,
+    .setting-row input[type="color"] {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px;
+      border: 1px solid #405271;
+      border-radius: 7px;
+      background: var(--input-background, #0d1422);
+      color: var(--text-color, #e8edff);
+    }
+
+    .setting-row input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    .setting-description {
+      color: #aab6d5;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .setting-status {
+      min-height: 24px;
+      color: #85dba9;
+    }
+
+    .setting-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>ABC Cipher 設定</h1>
+
+    <p class="note">
+      ABC Cipherの動作や外観を変更できます。
+      設定はこの端末に保存されます。
+    </p>
+
+    <section class="panel">
+      <h2>アップデート</h2>
+
+      <div class="setting-row">
+        <label for="update-mode">アップデート方式</label>
+        <select id="update-mode">
+          <option value="auto">自動更新（次回起動時）</option>
+          <option value="manual">手動更新（通知して確認）</option>
+        </select>
+        <p class="setting-description">
+          自動更新では、新しいバージョンを取得しておき、
+          次回起動時に適用します。
+          手動更新では、新しいバージョンが見つかったときに通知します。
+        </p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>外観</h2>
+
+      <div class="setting-row">
+        <label for="theme">テーマ</label>
+        <select id="theme">
+          <option value="dark">ダーク</option>
+          <option value="light">ライト</option>
+          <option value="system">システム設定に合わせる</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label for="accent-color">アクセントカラー</label>
+        <input type="color" id="accent-color" value="#79baff">
+      </div>
+
+      <div class="setting-row">
+        <label for="font-size">文字サイズ</label>
+        <select id="font-size">
+          <option value="small">小</option>
+          <option value="normal">標準</option>
+          <option value="large">大</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <label>
+          <input type="checkbox" id="animations">
+          アニメーションを有効にする
+        </label>
+        <p class="setting-description">
+          ローディング表示などのアニメーションを切り替えます。
+        </p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>設定の管理</h2>
+
+      <p id="setting-status" class="setting-status"
+         role="status" aria-live="polite"></p>
+
+      <div class="setting-actions">
+        <button type="button" id="reset-settings"
+                class="danger">
+          設定を初期化
+        </button>
+
+        <button type="button" id="back-button"
+                class="secondary">
+          メイン画面へ戻る
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const updateMode = document.getElementById("update-mode");
+      const theme = document.getElementById("theme");
+      const accentColor = document.getElementById("accent-color");
+      const fontSize = document.getElementById("font-size");
+      const animations = document.getElementById("animations");
+      const status = document.getElementById("setting-status");
+
+      // 保存済みの設定を画面に反映
+      const current = ABCSettings.get();
+
+      updateMode.value = current.updateMode;
+      theme.value = current.theme;
+      accentColor.value = current.accentColor;
+      fontSize.value = current.fontSize;
+      animations.checked = current.animations;
+
+      function saveAndApply(name, value) {
+        ABCSettings.update(name, value);
+        status.textContent = "設定を保存しました。";
+      }
+
+      updateMode.addEventListener("change", () => {
+        saveAndApply("updateMode", updateMode.value);
+      });
+
+      theme.addEventListener("change", () => {
+        saveAndApply("theme", theme.value);
+      });
+
+      accentColor.addEventListener("input", () => {
+        saveAndApply("accentColor", accentColor.value);
+      });
+
+      fontSize.addEventListener("change", () => {
+        saveAndApply("fontSize", fontSize.value);
+      });
+
+      animations.addEventListener("change", () => {
+        saveAndApply("animations", animations.checked);
+      });
+
+      document.getElementById("reset-settings")
+        .addEventListener("click", () => {
+          if (!confirm("すべての設定を初期状態に戻しますか？")) {
+            return;
+          }
+
+          ABCSettings.reset();
+
+          const defaults = ABCSettings.get();
+          updateMode.value = defaults.updateMode;
+          theme.value = defaults.theme;
+          accentColor.value = defaults.accentColor;
+          fontSize.value = defaults.fontSize;
+          animations.checked = defaults.animations;
+
+          status.textContent = "設定を初期化しました。";
+        });
+
+      document.getElementById("back-button")
+        .addEventListener("click", () => {
+          location.href = "index.html";
+        });
+    });
+  </script>
+</body>
+</html>
