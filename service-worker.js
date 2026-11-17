@@ -4,7 +4,7 @@
 // ABC Cipher - Service Worker
 // ========================================
 
-const CACHE_NAME = "abc-cipher";
+const CACHE_NAME = "abc-cipher-v1";
 
 const PRECACHE_FILES = [
   "./",
